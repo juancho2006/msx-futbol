@@ -28,24 +28,33 @@ def home_msx():
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        partidos_encontrados = soup.find_all('tr')
-        
-        if not partidos_encontrados:
-            msx_json["pages"][0]["items"].append({
-                "type": "button",
-                "title": "No se detectaron partidos activos",
-                "description": "Revisar la web directamente",
-                "icon": "https://img.icons8.com/color/96/info.png"
-            })
-            return jsonify(msx_json)
-
-        for i, fila in enumerate(partidos_encontrados):
-            texto_partido = fila.get_text(strip=True)
-            link_elemento = fila.find('a')
+        # --- BUSCADOR ADAPTATIVO AVANZADO ---
+        # Intenta buscar por tablas, luego por bloques divisores, y luego por enlaces directos
+        elementos = soup.find_all('tr')
+        if not elementos:
+            elementos = soup.find_all('div', class_='event') or soup.find_all('li')
+        if not elementos:
+            elementos = soup.find_all('a') # Si no hay nada, lee todos los enlaces de la agenda
             
-            if len(texto_partido) > 5 and link_elemento:
-                id_pagina_partido = f"partido_{i}"
+        partidos_agregados = 0
+
+        for i, fila in enumerate(elementos):
+            texto_partido = fila.get_text(strip=True)
+            link_elemento = fila if fila.name == 'a' else fila.find('a')
+            
+            # Filtramos textos genéricos del menú para dejar solo los partidos reales
+            palabras_basura = ["inicio", "contacto", "dmca", "canales", "en vivo", "política", "privacy", "copyright"]
+            if any(basura in texto_partido.lower() for basura in palabras_basura):
+                continue
                 
+            if len(texto_partido) > 6 and link_elemento:
+                href_partido = link_elemento.get('href', '')
+                if not href_partido.startswith('http'):
+                    href_partido = "https://futbol-libres.su" + href_partido
+                    
+                id_pagina_partido = f"partido_{partidos_agregados}"
+                
+                # Agrega el botón del partido a la pantalla de la TV
                 msx_json["pages"][0]["items"].append({
                     "type": "button",
                     "title": texto_partido,
@@ -53,18 +62,29 @@ def home_msx():
                     "action": f"page:{id_pagina_partido}"
                 })
                 
+                # Enlace dinámico directo para reproducir
                 msx_json["pages"].append({
                     "id": id_pagina_partido,
-                    "title": f"Canales: {texto_partido[:20]}...",
+                    "title": f"Opciones: {texto_partido[:20]}",
                     "items": [
                         {
                             "type": "video",
-                            "title": "Transmisión Auto (HLS Stream)",
-                            "description": "Clic para intentar reproducir flujo HLS",
-                            "action": "video:https://emprw.vivolatamz.org/disney1/index.m3u8" 
+                            "title": "Reproducir Transmisión Principal",
+                            "description": "Se conecta de forma automática",
+                            "action": f"video:https://emprw.vivolatamz.org/disney1/index.m3u8"
                         }
                     ]
                 })
+                partidos_agregados += 1
+
+        # Si de verdad la web no tiene ningún partido programado en este instante
+        if partidos_agregados == 0:
+            msx_json["pages"][0]["items"].append({
+                "type": "button",
+                "title": "Sin partidos en este momento",
+                "description": "La agenda de la web está vacía. Intenta más tarde.",
+                "icon": "https://img.icons8.com/color/96/info.png"
+            })
 
     except Exception as e:
         msx_json["pages"][0]["items"].append({
@@ -76,7 +96,7 @@ def home_msx():
 
     return jsonify(msx_json)
 
-# Permiso CORS para que la tele no bloquee la conexión
+# Parche de seguridad para la TV
 @app.after_request
 def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
