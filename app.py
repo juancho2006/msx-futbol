@@ -2,22 +2,23 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-def get_msx_content():
+def msx_data():
     return {
-        "name": "Fútbol MSX",
+        "name": "Fútbol en Vivo",
         "version": "1.0",
-        "parameter": "menu:http://msx-futbol.onrender.com/menu",
-        "menu": {
-            # tu contenido aquí
-        }
+        "type": "list",
+        # ... tu contenido actual de msx.json
     }
 
-# Ruta raíz — MSX puede acceder solo con el dominio
-@app.route("/")
+@app.route("/")          # <-- esto es lo que falta
 def root():
-    return jsonify(get_msx_content())
+    response = jsonify(msx_data())
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Content-Type"] = "application/json"
+    return response
 
-# Mantén la ruta original también
-@app.route("/msx.json")
+@app.route("/msx.json")  # mantén la ruta original
 def msx_json():
-    return jsonify(get_msx_content())
+    response = jsonify(msx_data())
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
