@@ -9,6 +9,7 @@ def msx_data():
     return {
         "name": "Fútbol en Vivo",
         "version": "1.0",
+        "parameter": "menu:http://msx-futbol.onrender.com",
         "type": "list",
         "items": [
             {
