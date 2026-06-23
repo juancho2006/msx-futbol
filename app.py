@@ -1,24 +1,37 @@
-from flask import Flask, jsonify
+import os
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 def msx_data():
+    stream_url = os.environ.get("STREAM_URL", "")
+    partido = os.environ.get("PARTIDO", "Partido en Vivo")
     return {
         "name": "Fútbol en Vivo",
         "version": "1.0",
         "type": "list",
-        # ... tu contenido actual de msx.json
+        "items": [
+            {
+                "label": partido,
+                "type": "video",
+                "action": f"video:{stream_url}"
+            }
+        ]
     }
 
-@app.route("/")          # <-- esto es lo que falta
-def root():
-    response = jsonify(msx_data())
+def make_response(data):
+    response = jsonify(data)
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Content-Type"] = "application/json"
     return response
 
-@app.route("/msx.json")  # mantén la ruta original
+@app.route("/")
+def root():
+    return make_response(msx_data())
+
+@app.route("/msx.json")
 def msx_json():
-    response = jsonify(msx_data())
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    return response
+    return make_response(msx_data())
+
+@app.route("/msx/start.json")   # <-- esto es lo que MSX busca
+def msx_start():
+    return make_response(msx_data())
