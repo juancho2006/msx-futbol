@@ -1,14 +1,18 @@
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Triple ruta de seguridad: responde a cualquier intento de la TV
-@app.route('/')
-@app.route('/msx.json')
-@app.route('/msx/start.json')
+# Agregamos soporte explícito para peticiones GET y OPTIONS (las que manda la TV)
+@app.route('/', methods=['GET', 'OPTIONS'])
+@app.route('/msx.json', methods=['GET', 'OPTIONS'])
+@app.route('/msx/start.json', methods=['GET', 'OPTIONS'])
 def home_msx():
+    # Si la TV pregunta si el servidor acepta conexiones (Preflight), le decimos que sí inmediatamente
+    if request.method == 'OPTIONS':
+        return '', 200
+
     url = "https://futbol-libres.su/"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -17,7 +21,7 @@ def home_msx():
     msx_json = {
         "name": "Fútbol Libre Auto",
         "version": "1.1",
-        "parameter": "menu:start",
+        "parameter": "page:start",  # CORREGIDO: Ahora le dice a MSX que abra la PÁGINA inicial directamente
         "pages": [
             {
                 "id": "start",
@@ -31,7 +35,6 @@ def home_msx():
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Buscador adaptativo de eventos
         elementos = soup.find_all('tr')
         if not elementos:
             elementos = soup.find_all('div', class_='event') or soup.find_all('li')
