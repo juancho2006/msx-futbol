@@ -1,22 +1,23 @@
 from flask import Flask, jsonify
+
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    # Estructura mínima que Media Station X exige
-    return jsonify({
-        "name": "Mi Futbol",
-        "version": "1.1",
-        "parameter": "menu:start",
-        "pages": [
-            {
-                "type": "menu",
-                "id": "start",
-                "title": "Partidos",
-                "items": []
-            }
-        ]
-    })
+def get_msx_content():
+    return {
+        "name": "Fútbol MSX",
+        "version": "1.0",
+        "parameter": "menu:http://msx-futbol.onrender.com/menu",
+        "menu": {
+            # tu contenido aquí
+        }
+    }
 
-if __name__ == '__main__':
-    app.run()
+# Ruta raíz — MSX puede acceder solo con el dominio
+@app.route("/")
+def root():
+    return jsonify(get_msx_content())
+
+# Mantén la ruta original también
+@app.route("/msx.json")
+def msx_json():
+    return jsonify(get_msx_content())
