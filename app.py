@@ -21,10 +21,11 @@ def home_msx():
     msx_json = {
         "name": "Fútbol Libre Auto",
         "version": "1.1",
-        "parameter": "page:start",  # CORREGIDO: Ahora le dice a MSX que abra la PÁGINA inicial directamente
+       "parameter": "menu:http://localhost/start",  # CORREGIDO: Ahora le dice a MSX que abra la PÁGINA inicial directamente
         "pages": [
             {
-                "id": "start",
+                "type": "menu",
+                "id": "http://localhost/start"
                 "title": "Partidos de Hoy ⚽",
                 "items": []
             }
