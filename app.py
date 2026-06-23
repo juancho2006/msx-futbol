@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from flask import Flask, jsonify
 
 app = Flask(__name__)
-
+@app.route('/')
 @app.route('/msx.json')
 def home_msx():
     url = "https://futbol-libres.su/"
