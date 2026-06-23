@@ -4,12 +4,10 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Agregamos soporte explícito para peticiones GET y OPTIONS (las que manda la TV)
 @app.route('/', methods=['GET', 'OPTIONS'])
 @app.route('/msx.json', methods=['GET', 'OPTIONS'])
-@app.route('/msx/start.json', methods=['GET', 'OPTIONS'])
 def home_msx():
-    # Si la TV pregunta si el servidor acepta conexiones (Preflight), le decimos que sí inmediatamente
+    # Soporte para la verificación de la TV
     if request.method == 'OPTIONS':
         return '', 200
 
@@ -21,11 +19,11 @@ def home_msx():
     msx_json = {
         "name": "Fútbol Libre Auto",
         "version": "1.1",
-       "parameter": "menu:http://localhost/start",  # CORREGIDO: Ahora le dice a MSX que abra la PÁGINA inicial directamente
+        "parameter": "menu:http://localhost/start",
         "pages": [
             {
                 "type": "menu",
-                "id": "http://localhost/start"
+                "id": "http://localhost/start",
                 "title": "Partidos de Hoy ⚽",
                 "items": []
             }
@@ -36,11 +34,10 @@ def home_msx():
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
+        # Búsqueda de elementos de partidos
         elementos = soup.find_all('tr')
         if not elementos:
             elementos = soup.find_all('div', class_='event') or soup.find_all('li')
-        if not elementos:
-            elementos = soup.find_all('a')
             
         partidos_agregados = 0
 
@@ -53,45 +50,25 @@ def home_msx():
                 continue
                 
             if len(texto_partido) > 6 and link_elemento:
-                href_partido = link_elemento.get('href', '')
-                if not href_partido.startswith('http'):
-                    href_partido = "https://futbol-libres.su" + href_partido
-                    
-                id_pagina_partido = f"partido_{partidos_agregados}"
-                
                 msx_json["pages"][0]["items"].append({
                     "type": "button",
                     "title": texto_partido,
                     "icon": "https://img.icons8.com/color/96/football.png",
-                    "action": f"page:{id_pagina_partido}"
-                })
-                
-                msx_json["pages"].append({
-                    "id": id_pagina_partido,
-                    "title": f"Opciones: {texto_partido[:20]}",
-                    "items": [
-                        {
-                            "type": "video",
-                            "title": "Reproducir Transmisión Principal",
-                            "description": "Se conecta de forma automática",
-                            "action": f"video:https://emprw.vivolatamz.org/disney1/index.m3u8"
-                        }
-                    ]
+                    "action": "video:https://emprw.vivolatamz.org/disney1/index.m3u8"
                 })
                 partidos_agregados += 1
 
         if partidos_agregados == 0:
             msx_json["pages"][0]["items"].append({
                 "type": "button",
-                "title": "Sin partidos en este momento",
-                "description": "La agenda de la web está vacía. Intenta más tarde.",
+                "title": "Sin partidos disponibles",
                 "icon": "https://img.icons8.com/color/96/info.png"
             })
 
     except Exception as e:
         msx_json["pages"][0]["items"].append({
             "type": "button",
-            "title": "Error al conectar con la agenda",
+            "title": "Error al conectar",
             "description": str(e),
             "icon": "https://img.icons8.com/color/96/error.png"
         })
