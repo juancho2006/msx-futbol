@@ -1,33 +1,22 @@
-from flask import Flask, jsonify, request
-
+from flask import Flask, jsonify
 app = Flask(__name__)
 
-# Esta es la parte clave: responde cuando entran a la dirección principal (sin nada más)
-@app.route('/', methods=['GET', 'OPTIONS'])
-def home_msx():
-    if request.method == 'OPTIONS':
-        return '', 200
-        
-    msx_json = {
-        "name": "Fútbol Libre Auto",
+@app.route('/')
+def home():
+    # Estructura mínima que Media Station X exige
+    return jsonify({
+        "name": "Mi Futbol",
         "version": "1.1",
-        "parameter": "menu:http://localhost/start",
+        "parameter": "menu:start",
         "pages": [
             {
                 "type": "menu",
-                "id": "http://localhost/start",
-                "title": "Partidos de Hoy ⚽",
-                "items": [
-                    {
-                        "type": "button",
-                        "title": "Configuración exitosa",
-                        "description": "El servidor está funcionando correctamente."
-                    }
-                ]
+                "id": "start",
+                "title": "Partidos",
+                "items": []
             }
         ]
-    }
-    return jsonify(msx_json)
+    })
 
 if __name__ == '__main__':
     app.run()
