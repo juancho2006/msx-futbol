@@ -4,9 +4,10 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-# Esta doble ruta permite que funcione tanto en la raíz como con /msx.json
+# Triple ruta de seguridad: responde a cualquier intento de la TV
 @app.route('/')
 @app.route('/msx.json')
+@app.route('/msx/start.json')
 def home_msx():
     url = "https://futbol-libres.su/"
     headers = {
@@ -30,7 +31,7 @@ def home_msx():
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # El buscador adaptativo rastrea la estructura de la web
+        # Buscador adaptativo de eventos
         elementos = soup.find_all('tr')
         if not elementos:
             elementos = soup.find_all('div', class_='event') or soup.find_all('li')
