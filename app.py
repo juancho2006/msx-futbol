@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from flask import Flask, jsonify
 
 app = Flask(__name__)
+
+# Esta doble ruta permite que funcione tanto en la raíz como con /msx.json
 @app.route('/')
 @app.route('/msx.json')
 def home_msx():
@@ -28,21 +30,19 @@ def home_msx():
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # --- BUSCADOR ADAPTATIVO AVANZADO ---
-        # Intenta buscar por tablas, luego por bloques divisores, y luego por enlaces directos
+        # El buscador adaptativo rastrea la estructura de la web
         elementos = soup.find_all('tr')
         if not elementos:
             elementos = soup.find_all('div', class_='event') or soup.find_all('li')
         if not elementos:
-            elementos = soup.find_all('a') # Si no hay nada, lee todos los enlaces de la agenda
+            elementos = soup.find_all('a')
             
         partidos_agregados = 0
 
-        for i, fila in enumerate(elementos):
+        for fila in elementos:
             texto_partido = fila.get_text(strip=True)
             link_elemento = fila if fila.name == 'a' else fila.find('a')
             
-            # Filtramos textos genéricos del menú para dejar solo los partidos reales
             palabras_basura = ["inicio", "contacto", "dmca", "canales", "en vivo", "política", "privacy", "copyright"]
             if any(basura in texto_partido.lower() for basura in palabras_basura):
                 continue
@@ -54,7 +54,6 @@ def home_msx():
                     
                 id_pagina_partido = f"partido_{partidos_agregados}"
                 
-                # Agrega el botón del partido a la pantalla de la TV
                 msx_json["pages"][0]["items"].append({
                     "type": "button",
                     "title": texto_partido,
@@ -62,7 +61,6 @@ def home_msx():
                     "action": f"page:{id_pagina_partido}"
                 })
                 
-                # Enlace dinámico directo para reproducir
                 msx_json["pages"].append({
                     "id": id_pagina_partido,
                     "title": f"Opciones: {texto_partido[:20]}",
@@ -77,7 +75,6 @@ def home_msx():
                 })
                 partidos_agregados += 1
 
-        # Si de verdad la web no tiene ningún partido programado en este instante
         if partidos_agregados == 0:
             msx_json["pages"][0]["items"].append({
                 "type": "button",
@@ -96,7 +93,6 @@ def home_msx():
 
     return jsonify(msx_json)
 
-# Parche de seguridad para la TV
 @app.after_request
 def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
