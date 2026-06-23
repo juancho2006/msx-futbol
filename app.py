@@ -10,14 +10,17 @@ def msx_data():
         "name": "Fútbol en Vivo",
         "version": "1.0",
         "parameter": "menu:http://msx-futbol.onrender.com",
-        "type": "list",
-        "items": [
-            {
-                "label": partido,
-                "type": "video",
-                "action": f"video:{stream_url}"
-            }
-        ]
+        "menu": {
+            "label": "Fútbol en Vivo",
+            "type": "list",
+            "items": [
+                {
+                    "label": partido,
+                    "type": "video",
+                    "action": f"video:{stream_url}"
+                }
+            ]
+        }
     }
 
 def make_response(data):
