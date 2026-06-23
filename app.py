@@ -1,21 +1,13 @@
-import requests
-from bs4 import BeautifulSoup
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
+# Esta es la parte clave: responde cuando entran a la dirección principal (sin nada más)
 @app.route('/', methods=['GET', 'OPTIONS'])
-@app.route('/msx.json', methods=['GET', 'OPTIONS'])
 def home_msx():
-    # Soporte para la verificación de la TV
     if request.method == 'OPTIONS':
         return '', 200
-
-    url = "https://futbol-libres.su/"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-    
+        
     msx_json = {
         "name": "Fútbol Libre Auto",
         "version": "1.1",
@@ -25,62 +17,17 @@ def home_msx():
                 "type": "menu",
                 "id": "http://localhost/start",
                 "title": "Partidos de Hoy ⚽",
-                "items": []
+                "items": [
+                    {
+                        "type": "button",
+                        "title": "Configuración exitosa",
+                        "description": "El servidor está funcionando correctamente."
+                    }
+                ]
             }
         ]
     }
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Búsqueda de elementos de partidos
-        elementos = soup.find_all('tr')
-        if not elementos:
-            elementos = soup.find_all('div', class_='event') or soup.find_all('li')
-            
-        partidos_agregados = 0
-
-        for fila in elementos:
-            texto_partido = fila.get_text(strip=True)
-            link_elemento = fila if fila.name == 'a' else fila.find('a')
-            
-            palabras_basura = ["inicio", "contacto", "dmca", "canales", "en vivo", "política", "privacy", "copyright"]
-            if any(basura in texto_partido.lower() for basura in palabras_basura):
-                continue
-                
-            if len(texto_partido) > 6 and link_elemento:
-                msx_json["pages"][0]["items"].append({
-                    "type": "button",
-                    "title": texto_partido,
-                    "icon": "https://img.icons8.com/color/96/football.png",
-                    "action": "video:https://emprw.vivolatamz.org/disney1/index.m3u8"
-                })
-                partidos_agregados += 1
-
-        if partidos_agregados == 0:
-            msx_json["pages"][0]["items"].append({
-                "type": "button",
-                "title": "Sin partidos disponibles",
-                "icon": "https://img.icons8.com/color/96/info.png"
-            })
-
-    except Exception as e:
-        msx_json["pages"][0]["items"].append({
-            "type": "button",
-            "title": "Error al conectar",
-            "description": str(e),
-            "icon": "https://img.icons8.com/color/96/error.png"
-        })
-
     return jsonify(msx_json)
-
-@app.after_request
-def add_cors_headers(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
 
 if __name__ == '__main__':
     app.run()
